@@ -1,0 +1,2 @@
+copy .\dist\cordova\android\apk\release\app-release-unsigned.apk .\dist\cordova\android\apk\release\app-release-signed.apk
+jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore ${xxx.keystore} ./dist/cordova/android/apk/release/app-release-signed.apk ${xxx.keystore} -storepass ${storepass}

@@ -1,0 +1,7 @@
+module.exports = {
+    APP_ID: "xxx",
+    API_KEY: "xxx",
+    SECRET_KEY: "xxx",
+    TOKEN_URL: 'https://aip.baidubce.com/oauth/2.0/token',
+    PLATE_URL: 'https://aip.baidubce.com/rest/2.0/ocr/v1/license_plate'
+}
