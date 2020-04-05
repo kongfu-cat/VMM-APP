@@ -114,6 +114,12 @@
               </q-icon>
             </template>
           </q-input>
+          <!-- 文本框 -->
+          <q-input
+            v-model="remark"
+            filled
+            type="textarea"
+          />
           <!-- 确认按钮 -->
           <div style="overflow: hidden;">
             <q-btn
@@ -149,11 +155,110 @@
       dense
       :data="tableData"
       :columns="columns"
-      row-key="name"
+      row-key="uuid"
       class="result-table"
       no-data-label="没有数据"
       no-results-label="没有匹配的数据"
-    />
+      @row-click="handleRowClick"
+      :pagination.sync="pagination"
+    >
+      <template v-slot:body="props">
+        <q-tr :props="props">
+          <q-td
+            key="name"
+            :props="props"
+          >
+            {{ props.row.name }}
+            <q-popup-edit v-model="props.row.name">
+              <q-input
+                v-model="props.row.name"
+                dense
+                autofocus
+                counter
+              />
+            </q-popup-edit>
+          </q-td>
+          <q-td
+            key="plateNumber"
+            :props="props"
+          >
+            {{ props.row.plateNumber }}
+            <q-popup-edit v-model="props.row.plateNumber">
+              <q-input
+                v-model="props.row.plateNumber"
+                dense
+                autofocus
+                counter
+              />
+            </q-popup-edit>
+          </q-td>
+          <q-td
+            key="phoneNumber"
+            :props="props"
+          >
+            {{ props.row.phoneNumber }}
+            <q-popup-edit v-model="props.row.phoneNumber">
+              <q-input
+                v-model="props.row.phoneNumber"
+                dense
+                autofocus
+                counter
+              />
+            </q-popup-edit>
+          </q-td>
+          <q-td
+            key="date"
+            :props="props"
+          >
+            {{ props.row.date }}
+            <q-popup-edit v-model="props.row.date">
+              <q-input
+                v-model="props.row.date"
+                dense
+                autofocus
+                counter
+              />
+            </q-popup-edit>
+          </q-td>
+          <q-td
+            key="remark"
+            :props="props"
+          >
+            <div class="text-pre-wrap">{{ props.row.remark }}</div>
+            <q-popup-edit v-model="props.row.remark">
+              <q-input
+                type="textarea"
+                v-model="props.row.remark"
+                dense
+                autofocus
+              />
+            </q-popup-edit>
+          </q-td>
+          <!-- <q-td
+            key="uuid"
+            :props="props"
+          >{{ props.row.uuid }}</q-td> -->
+          <q-td
+            key="operate"
+            :props="props"
+          >
+            <q-btn
+              label="更新"
+              color="green"
+              @click="updateRecord(props.row.uuid, props.row)"
+              style="margin-right:5px;"
+            >
+            </q-btn>
+            <q-btn
+              label="删除"
+              color="red"
+              @click="deleteRecord(props.row.uuid)"
+            >
+            </q-btn>
+          </q-td>
+        </q-tr>
+      </template>
+    </q-table>
   </q-page>
 </template>
 
@@ -161,6 +266,7 @@
 import { doWriteFile, doReadFile } from "src/utils/fs"
 import { getPictureConfirm } from "src/utils/camera"
 import { getLicensePlate } from "src/utils/baidu"
+import { generateUUID } from "src/utils/utils"
 export default {
   name: 'PageRecord',
   data () {
@@ -176,11 +282,15 @@ export default {
       phoneOptions: [],
       plateOptions: [],
       // 表单
+      uuid: null,
       name: null,
       date: null,
+      remark: null,
       plateNumber: null,
       phoneNumber: null,
-
+      // table
+      uuidSelected: null,
+      tableSelection: [],
       dataSource: [],
       columns: [
         {
@@ -194,7 +304,16 @@ export default {
         { name: 'plateNumber', align: 'center', label: '车牌', field: 'plateNumber' },
         { name: 'phoneNumber', label: '手机号', field: 'phoneNumber' },
         { name: 'date', label: '日期', field: 'date' },
+        { name: 'remark', label: '备注', field: 'remark' },
+        { name: 'operate', label: '操作', field: 'operate' },
+        // { name: 'uuid', label: 'UUID', field: 'uuid' },
       ],
+      pagination: {
+        sortBy: 'desc',
+        descending: false,
+        rowsPerPage: 100
+        // rowsNumber: xx if getting data from a server
+      },
       tableData: []
     }
   },
@@ -202,6 +321,15 @@ export default {
     this.loadData()
   },
   methods: {
+    handleRowClick (event, row) {
+      console.log('handleRowClick: ', row)
+    },
+    handleTouchStart () {
+      console.log('handleTouchStart: ')
+    },
+    handleTouchEnd () {
+      console.log('handleTouchStart: ')
+    },
     handleToggleTopbar () {
       this.topToggleFlag = !this.topToggleFlag
       this.toggleIcon = this.topToggleFlag ? 'arrow_drop_up' : 'arrow_drop_down'
@@ -223,6 +351,11 @@ export default {
         }
         if (data.date) {
           if (item.date.toLowerCase().indexOf(data.date.toLowerCase()) == -1) {
+            res = false
+          }
+        }
+        if (data.remark) {
+          if (item.remark.toLowerCase().indexOf(data.remark.toLowerCase()) == -1) {
             res = false
           }
         }
@@ -253,17 +386,50 @@ export default {
           this.plateDict = []
 
           this.dataSource.forEach(item => {
+            if (item['uuid'] == undefined) item['uuid'] = generateUUID()
             this.customerDict.push(item.name)
             this.phoneDict.push(item.phoneNumber)
             this.plateDict.push(item.plateNumber)
           })
+          this.customerDict = Array.from(new Set(this.customerDict))
+          this.phoneDict = Array.from(new Set(this.phoneDict))
+          this.plateDict = Array.from(new Set(this.plateDict))
         }
       }
       doReadFile('vmm_data.json', showSuccess);
     },
+    saveData (text) {
+      const showSuccess = () => {
+        console.log("saveData.showSuccess: ")
+        navigator.notification.alert(
+          '保存成功',  // message
+          () => {
+            this.onReset()
+          },         // callback
+          '提示',            // title
+          '确认'                  // buttonName
+        );
+        this.loadData()
+      }
+      doWriteFile('vmm_data.json', text, showSuccess);
+    },
+    deleteRecord (uuid) {
+      this.dataSource = this.dataSource.filter(item => item.uuid != uuid)
+      this.saveData(JSON.stringify(this.dataSource))
+    },
+    updateRecord (uuid, row) {
+      this.dataSource.forEach(item => {
+        if (item.uuid == uuid) {
+          for (let key of Reflect.ownKeys(item)) {
+            item[key] = row[key] != undefined ? row[key] : item[key]
+          }
+        }
+      })
+      this.saveData(JSON.stringify(this.dataSource))
+    },
     filterFnName (val, update, abort) {
       update(() => {
-        console.log('filterFnName: ', val)
+        // console.log('filterFnName: ', val)
         const needle = val.toLowerCase()
         this.customerOptions = this.customerDict.filter(v => v.toLowerCase().indexOf(needle) > -1)
       })
@@ -284,6 +450,7 @@ export default {
       const formData = {
         name: this.name,
         date: this.date,
+        remark: this.remark,
         phoneNumber: this.phoneNumber,
         plateNumber: this.plateNumber
       }
@@ -292,6 +459,7 @@ export default {
     onReset () {
       this.name = null
       this.date = null
+      this.remark = null
       this.plateNumber = null
       this.phoneNumber = null
     }
@@ -305,15 +473,15 @@ export default {
   margin-bottom: 10px
 
 .search-form
-  padding: 0 20px;
+  padding: 0 20px
 
 .top-toggle-btn
   width: 100%
   height: 30px
   background-color: #26a69a
   color: #fff
-  border-radius: 0;
+  border-radius: 0
 
 .result-table
-  border-radius: 0;
+  border-radius: 0
 </style>

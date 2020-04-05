@@ -114,6 +114,12 @@
               </q-icon>
             </template>
           </q-input>
+          <!-- 文本框 -->
+          <q-input
+            v-model="remark"
+            filled
+            type="textarea"
+          />
           <!-- 确认按钮 -->
           <div style="overflow: hidden;">
             <q-btn
@@ -142,6 +148,7 @@
 import { doWriteFile, doReadFile } from "src/utils/fs"
 import { getPictureConfirm } from "src/utils/camera"
 import { getLicensePlate } from "src/utils/baidu"
+import { generateUUID } from "src/utils/utils"
 export default {
   name: 'PageRecord',
   data () {
@@ -159,6 +166,7 @@ export default {
       date: null,
       plateNumber: null,
       phoneNumber: null,
+      remark: null,
 
       dataSource: []
     }
@@ -193,10 +201,14 @@ export default {
           this.plateDict = []
 
           this.dataSource.forEach(item => {
+            if (item['uuid'] == undefined) item['uuid'] = generateUUID()
             this.customerDict.push(item.name)
             this.phoneDict.push(item.phoneNumber)
             this.plateDict.push(item.plateNumber)
           })
+          this.customerDict = Array.from(new Set(this.customerDict))
+          this.phoneDict = Array.from(new Set(this.phoneDict))
+          this.plateDict = Array.from(new Set(this.plateDict))
         }
       }
       doReadFile('vmm_data.json', showSuccess);
@@ -249,15 +261,18 @@ export default {
       const formData = {
         name: this.name,
         date: this.date,
+        remark: this.remark,
         phoneNumber: this.phoneNumber,
         plateNumber: this.plateNumber
       }
+      formData['uuid'] = generateUUID()
       this.dataSource.push(formData)
       this.saveData(JSON.stringify(this.dataSource))
     },
     onReset () {
       this.name = null
       this.date = null
+      this.remark = null
       this.plateNumber = null
       this.phoneNumber = null
     }
@@ -271,5 +286,5 @@ export default {
   margin-bottom: 10px
 
 .search-form
-  padding: 0 20px;
+  padding: 0 20px
 </style>

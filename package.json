@@ -1,6 +1,6 @@
 {
   "name": "vmm-app",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "用于车辆维修记录管理和查询",
   "productName": "维修记事本",
   "cordovaId": "com.kongfucat.vmm",
